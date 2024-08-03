@@ -143,7 +143,7 @@ class BarkBuild {
      * @returns {Promise<object>} - The transaction result.
      */
     async tx(data) {
-        const { rpc, account, instructions, signers = false, priority = "Medium", tolerance = 1.1, serialize = false, encode = false, tables = false, compute = true, fees = true } = data;
+        const { rpc, account, instructions, signers = [], priority = "Medium", tolerance = 1.1, serialize = false, encode = false, tables = false, compute = true, fees = true } = data;
 
         if (!rpc || !account || !instructions) {
             return { message: "Missing required parameters" };
@@ -172,7 +172,7 @@ class BarkBuild {
         }).compileToV0Message(tables ? tables : []);
         const tx = new VersionedTransaction(transactionMessage);
 
-        if (signers) {
+        if (signers.length > 0) {
             tx.sign(signers);
         }
 

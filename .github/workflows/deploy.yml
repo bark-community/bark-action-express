@@ -11,20 +11,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16' # Specify the Node.js version here
+          node-version: '20' # Specify the Node.js version here
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
         run: npm install
-      
+
       - name: Build the project
-        run: npm run build # Assuming you have a build script; adjust as needed
-      
+        run: npm run build # Adjust if your project doesn’t need a build step
+
       - name: Run tests
-        run: npm test # Run tests before deploying; optional but recommended
+        run: npm test # Run tests before deploying
 
       - name: Deploy
         run: npm start
@@ -32,5 +40,5 @@ jobs:
           NODE_ENV: production # Ensure you're deploying in the production environment
 
       - name: Verify deployment
-        run: curl -I http://localhost:3000 # Replace with your application's URL to verify if it's up
-        continue-on-error: true # Continue even if the verification fails to help diagnose issues
+        run: curl -I http://localhost:3000 # Replace with your application's URL
+        continue-on-error: true # Continue even if the verification fails

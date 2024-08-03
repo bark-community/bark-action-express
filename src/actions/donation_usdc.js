@@ -7,45 +7,22 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import * as splToken from "@solana/spl-token";
 import barkbuild from '../barkbuild/barkbuild.js';
 import Express from 'express';
+import { mockData } from '../mockData.js';
 
 const donation_usdc = Express.Router();
 // *********************************************************************************
 
 // *********************************************************************************
 // USDC Donation Configuration Endpoint
-// Provides configuration details for initiating a USDC donation
 donation_usdc.get('/donate-usdc-config', (req, res) => {
-    const response = {
-        icon: "https://barkdao.app/images/pfp-416-usdc.png",
-        title: "Donate USDC to BarkDAO",
-        description: "Enter the amount of USDC you wish to donate and click Send.",
-        label: "Donate",
-        links: {
-            actions: [
-                {
-                    label: "Send",
-                    href: `${host}/donate-usdc-build?amount={amount}`,
-                    parameters: [
-                        {
-                            name: "amount", // Input field name
-                            label: "USDC Amount", // Placeholder text
-                            required: true // Field is mandatory
-                        }
-                    ]
-                }
-            ]
-        }
-    };
-    res.json(response);
+    res.json(mockData.donationUsdcConfig);
 });
 // *********************************************************************************
 
 // *********************************************************************************
 // USDC Donation Transaction Endpoint
-// Handles the donation transaction by transferring USDC to the charity wallet
 donation_usdc.post('/donate-usdc-build', async (req, res) => {
     try {
-        // Extract and validate input
         const { account: userWallet } = req.body;
         const amount = parseFloat(req.query.amount);
 
@@ -53,9 +30,8 @@ donation_usdc.post('/donate-usdc-build', async (req, res) => {
             return res.status(400).json({ message: "User wallet address is required." });
         }
 
-        // Validate user wallet address
         try {
-            new PublicKey(userWallet);
+            new PublicKey(userWallet); // Validate the wallet address
         } catch (e) {
             return res.status(400).json({ message: "Invalid user wallet address." });
         }
@@ -64,17 +40,15 @@ donation_usdc.post('/donate-usdc-build', async (req, res) => {
             return res.status(400).json({ message: "Invalid USDC amount specified. Amount should be a positive number." });
         }
 
-        // Constants for USDC and recipient
         const DECIMALS = 6;
         const USDC_MINT_ADDRESS = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // USDC mint address
         const TREASURY_WALLET_ADDRESS = new PublicKey('BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo'); // Treasury wallet address
 
-        // Initialize connection and addresses
         const connection = new Connection(rpc, "confirmed");
         const fromWallet = new PublicKey(userWallet);
-        const transferAmount = Math.floor(amount * Math.pow(10, DECIMALS));
+        const transferAmount = Math.floor(amount * Math.pow(10, DECIMALS)); // Convert amount to smallest unit
 
-        // Retrieve or create token accounts
+        // Get associated token accounts
         const fromTokenAccount = await splToken.getAssociatedTokenAddress(
             USDC_MINT_ADDRESS,
             fromWallet,
@@ -91,21 +65,21 @@ donation_usdc.post('/donate-usdc-build', async (req, res) => {
             splToken.ASSOCIATED_TOKEN_PROGRAM_ID
         );
 
-        // Check if recipient token account exists
         let createATA = false;
         try {
+            // Check if the recipient's token account exists
             await splToken.getAccount(connection, toTokenAccount, 'confirmed', splToken.TOKEN_PROGRAM_ID);
         } catch (error) {
             if (error.name === "TokenAccountNotFoundError") {
-                createATA = true;
+                createATA = true; // Set flag to create account if it doesn't exist
             } else {
                 throw error;
             }
         }
 
-        // Prepare transaction instructions
         const instructions = [];
         if (createATA) {
+            // Create associated token account if necessary
             const createATAIx = splToken.createAssociatedTokenAccountInstruction(
                 fromWallet,
                 toTokenAccount,
@@ -117,6 +91,7 @@ donation_usdc.post('/donate-usdc-build', async (req, res) => {
             instructions.push(createATAIx);
         }
 
+        // Create transfer instruction
         const transferIx = splToken.createTransferInstruction(
             fromTokenAccount,
             toTokenAccount,
@@ -125,26 +100,27 @@ donation_usdc.post('/donate-usdc-build', async (req, res) => {
         );
         instructions.push(transferIx);
 
-        // Build and send transaction
+        // Transaction configuration
         const txConfig = {
             rpc,
             account: userWallet,
             instructions,
-            signers: [], // No additional signers needed
+            signers: [],
             serialize: true,
             encode: true,
             tables: false,
             tolerance: 1.2,
             compute: false,
             fees: false,
-            priority: req.query.priority || "Medium" // Transaction priority
+            priority: req.query.priority || "Medium"
         };
 
+        // Build and send the transaction
         const txResponse = await barkbuild.tx(txConfig);
         txResponse.message = `Successfully sent ${amount} USDC! Thank you for your donation.`;
         res.json(txResponse);
     } catch (error) {
-        console.error("Error processing USDC donation:", error.message);
+        console.error("Error processing USDC donation:", error.stack || error.message);
         res.status(500).json({ message: "Internal server error while processing the donation." });
     }
 });
