@@ -1,0 +1,358 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bark Action Express API",
+    "description": "API for Solana CNFT minting and donation actions.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local server"
+    }
+  ],
+  "paths": {
+    "/bark-mint-config": {
+      "get": {
+        "summary": "Get CNFT Mint Configuration",
+        "description": "Returns the configuration for minting CNFTs.",
+        "responses": {
+          "200": {
+            "description": "Mint configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "icon": {
+                      "type": "string",
+                      "example": "https://ucarecdn.com/74392932-2ff5-4237-a1fa-e0fd15725ecc/bark.svg"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Mint (0.15 BARK CNFT)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Mint a BARK NFT here!"
+                    },
+                    "label": {
+                      "type": "string",
+                      "example": "Mint"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "actions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string",
+                                "example": "Mint"
+                              },
+                              "href": {
+                                "type": "string",
+                                "example": "http://localhost:3000/bark-mint-build?priority=High"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bark-mint-build": {
+      "post": {
+        "summary": "Mint a CNFT",
+        "description": "Creates a transaction to mint a CNFT.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "string",
+                    "description": "The user's wallet address."
+                  }
+                },
+                "required": ["account"]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["VeryHigh", "High", "Medium", "Low", "Min"],
+              "default": "Medium"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "You minted a BARK CNFT!"
+                    },
+                    "transactionId": {
+                      "type": "string",
+                      "example": "Transaction ID or signature here"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User wallet address is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "An internal server error occurred while processing the minting."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/donate-sol-config": {
+      "get": {
+        "summary": "Get SOL Donation Configuration",
+        "description": "Returns the configuration for donating SOL.",
+        "responses": {
+          "200": {
+            "description": "Donation configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "icon": {
+                      "type": "string",
+                      "example": "https://barkdao.app/images/pfp-416.png"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Donate SOL to BarkDAO"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Enter SOL amount and click Send"
+                    },
+                    "label": {
+                      "type": "string",
+                      "example": "donate"
+                    },
+                    "links": {
+                      "type": "object",
+                      "properties": {
+                        "actions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string",
+                                "example": "Send"
+                              },
+                              "href": {
+                                "type": "string",
+                                "example": "http://localhost:3000/donate-sol-build?amount={amount}"
+                              },
+                              "parameters": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "example": "amount"
+                                    },
+                                    "label": {
+                                      "type": "string",
+                                      "example": "SOL Amount"
+                                    },
+                                    "required": {
+                                      "type": "boolean",
+                                      "example": true
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/donate-sol-build": {
+      "post": {
+        "summary": "Donate SOL",
+        "description": "Creates a transaction to donate SOL.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account": {
+                    "type": "string",
+                    "description": "The user's wallet address."
+                  }
+                },
+                "required": ["account"]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "example": 0.1
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["VeryHigh", "High", "Medium", "Low", "Min"],
+              "default": "Medium"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Donation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "You have sent 0.1 SOL!"
+                    },
+                    "transactionId": {
+                      "type": "string",
+                      "example": "Transaction ID or signature here"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User wallet is missing or Invalid SOL amount"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/donate-usdc-config": {
+      "get": {
+        "summary": "Get USDC Donation Configuration",
+        "description": "Returns the configuration for donating USDC.",
+        "responses": {
+          "200": {
+            "description": "Donation configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "icon": {
+                      "type": "string",
+                      "example": "https://barkdao.app/images/pfp-416-usdc.png"
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "Donate USDC to BarkDAO"
+                    },
+                    "description": {
+                      "type":
