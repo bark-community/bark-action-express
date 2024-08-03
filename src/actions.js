@@ -15,10 +15,17 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+
+// Import route handlers
 import { bark_mint } from './actions/bark_mint.js';
 import { donation_sol } from './actions/donation_sol.js';
 import { donation_usdc } from './actions/donation_usdc.js';
 import { donation_bark } from './actions/donation_bark.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
@@ -35,6 +42,13 @@ app.use(cors({
   preflightContinue: true,
   optionsSuccessStatus: 204
 }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
 
 // Include and register routes for different actions
 app.use("/bark-mint", bark_mint);
@@ -53,6 +67,9 @@ app.get("/", (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ message: err.message });
+  }
   console.error(err.stack);
   res.status(500).json({ message: "An internal server error occurred." });
 });
