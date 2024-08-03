@@ -64,15 +64,15 @@ barkbuild_mint.post('/bark-mint-build', async (req, res) => {
     const priority = req.query.priority || 'Medium';
 
     // Validate inputs
-    if (!userWallet) {
-        return res.status(400).json({ message: "User wallet address is required." });
-    }
-
-    if (!['VeryHigh', 'High', 'Medium', 'Low', 'Min'].includes(priority)) {
-        return res.status(400).json({ message: "Invalid or missing transaction priority." });
-    }
-
     try {
+        if (!PublicKey.isOnCurve(userWallet)) {
+            return res.status(400).json({ message: "Invalid user wallet address." });
+        }
+
+        if (!['VeryHigh', 'High', 'Medium', 'Low', 'Min'].includes(priority)) {
+            return res.status(400).json({ message: "Invalid or missing transaction priority." });
+        }
+
         const connection = new Connection(rpc, "confirmed");
         const programId = new PublicKey("BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo");
         const wallet = new PublicKey(userWallet);
@@ -150,7 +150,7 @@ barkbuild_mint.post('/bark-mint-build', async (req, res) => {
         res.json(tx);
 
     } catch (error) {
-        console.error('Error processing CNFT minting:', error);
+        console.error('Error processing CNFT minting:', error.message);
         res.status(500).json({ message: "An internal server error occurred while processing the minting." });
     }
 });

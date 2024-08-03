@@ -1,3 +1,5 @@
+'use strict';
+
 // *********************************************************************************
 // name: bark-action-express
 // author: @bark_protocol
@@ -5,14 +7,14 @@
 // *********************************************************************************
 
 // *********************************************************************************
-// Initialize server
+// Import necessary modules and configurations
 import { host, auto, rules } from './config.js';
 import open from 'open';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import helmet from 'helmet';
-import compression from 'compression'; // Added for gzip compression
+import compression from 'compression';
 import { bark_mint } from './actions/bark_mint.js';
 import { donation_sol } from './actions/donation_sol.js';
 import { donation_usdc } from './actions/donation_usdc.js';
@@ -23,7 +25,8 @@ const app = express();
 // Middleware setup
 app.use(helmet()); // Adds various security headers
 app.use(compression()); // Enables gzip compression
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // Parses JSON bodies
+app.use(bodyParser.urlencoded({ extended: true })); // Parses URL-encoded bodies
 
 // Enable CORS with predefined options
 app.use(cors({
@@ -33,11 +36,11 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Include and register actions
-app.use("/", bark_mint);
-app.use("/", donation_sol);
-app.use("/", donation_usdc);
-app.use("/", donation_bark);
+// Include and register routes for different actions
+app.use("/bark-mint", bark_mint);
+app.use("/donate-sol", donation_sol);
+app.use("/donate-usdc", donation_usdc);
+app.use("/donate-bark", donation_bark);
 
 // Route handlers
 app.get("/actions.json", (req, res) => {
@@ -66,4 +69,5 @@ app.listen(port, () => {
     });
   }
 });
+
 // *********************************************************************************

@@ -3,7 +3,7 @@
 // *********************************************************************************
 // SOL Donation Action
 import { rpc, host } from '../config.js';
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram } from '@solana/web3.js';
 import barkbuild from '../barkbuild/barkbuild.js';
 import Express from 'express';
 
@@ -12,11 +12,12 @@ const donation_sol = Express.Router();
 
 // *********************************************************************************
 // SOL Donation Configuration Endpoint
+// Provides configuration details for initiating a SOL donation
 donation_sol.get('/donate-sol-config', (req, res) => {
     const response = {
         icon: "https://barkdao.app/images/pfp-416.png",
         title: "Donate SOL to BarkDAO",
-        description: "Enter SOL amount and click Send",
+        description: "Enter the amount of SOL you wish to donate and click Send.",
         label: "Donate",
         links: {
             actions: [
@@ -25,9 +26,9 @@ donation_sol.get('/donate-sol-config', (req, res) => {
                     href: `${host}/donate-sol-build?amount={amount}`,
                     parameters: [
                         {
-                            name: "amount",
-                            label: "SOL Amount",
-                            required: true
+                            name: "amount", // Input field name
+                            label: "SOL Amount", // Placeholder text
+                            required: true // Field is mandatory
                         }
                     ]
                 }
@@ -40,6 +41,7 @@ donation_sol.get('/donate-sol-config', (req, res) => {
 
 // *********************************************************************************
 // SOL Donation Transaction Endpoint
+// Handles the donation transaction by transferring SOL to the charity wallet
 donation_sol.post('/donate-sol-build', async (req, res) => {
     try {
         // Extract and validate input
@@ -50,16 +52,23 @@ donation_sol.post('/donate-sol-build', async (req, res) => {
             return res.status(400).json({ message: "User wallet address is required." });
         }
 
-        if (isNaN(amount) || amount <= 0) {
-            return res.status(400).json({ message: "Invalid SOL amount specified." });
+        // Validate user wallet address
+        try {
+            new PublicKey(userWallet);
+        } catch (e) {
+            return res.status(400).json({ message: "Invalid user wallet address." });
         }
 
-        // Convert SOL amount to lamports
+        if (isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ message: "Invalid SOL amount specified. Amount should be a positive number." });
+        }
+
+        // Convert SOL amount to lamports (1 SOL = 1e9 lamports)
         const lamports = amount * 1_000_000_000;
         const fromPubkey = new PublicKey(userWallet);
-        const toPubkey = new PublicKey("BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo"); // Treasury wallet address
+        const toPubkey = new PublicKey("BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo"); // Replace with the actual charity account address
 
-        // Create transaction instruction
+        // Create transaction instruction for transferring SOL
         const transferInstruction = SystemProgram.transfer({
             fromPubkey,
             toPubkey,
@@ -68,26 +77,26 @@ donation_sol.post('/donate-sol-build', async (req, res) => {
 
         // Prepare transaction configuration
         const txConfig = {
-            rpc,
-            account: userWallet,
-            instructions: [transferInstruction],
-            signers: false,
-            serialize: true,
-            encode: true,
-            tables: false,
-            tolerance: 2,
-            compute: false,
-            fees: false,
-            priority: req.query.priority || "Medium"
+            rpc, // RPC endpoint
+            account: userWallet, // User's wallet address
+            instructions: [transferInstruction], // Array of instructions
+            signers: [], // No additional signers needed for this transaction
+            serialize: true, // Serialize the transaction
+            encode: true, // Encode the transaction
+            tables: false, // Do not include tables
+            tolerance: 2, // Tolerance level for transaction
+            compute: false, // Do not include compute budget
+            fees: false, // Do not include fees
+            priority: req.query.priority || "Medium" // Transaction priority
         };
 
-        // Build and send transaction
+        // Build and send the transaction
         const txResponse = await barkbuild.tx(txConfig);
-        txResponse.message = `You have successfully sent ${amount} SOL!`;
+        txResponse.message = `Successfully sent ${amount} SOL! Thank you for your donation.`;
         res.json(txResponse);
     } catch (error) {
-        console.error("Error processing SOL donation:", error);
-        res.status(500).json({ message: "Internal server error while processing donation." });
+        console.error("Error processing SOL donation:", error.message);
+        res.status(500).json({ message: "Internal server error while processing the donation." });
     }
 });
 // *********************************************************************************

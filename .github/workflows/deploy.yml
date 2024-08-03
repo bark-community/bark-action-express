@@ -11,7 +11,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16' # Specify the Node.js version here
+
       - name: Install dependencies
         run: npm install
+      
+      - name: Build the project
+        run: npm run build # Assuming you have a build script; adjust as needed
+      
+      - name: Run tests
+        run: npm test # Run tests before deploying; optional but recommended
+
       - name: Deploy
         run: npm start
+        env:
+          NODE_ENV: production # Ensure you're deploying in the production environment
+
+      - name: Verify deployment
+        run: curl -I http://localhost:3000 # Replace with your application's URL to verify if it's up
+        continue-on-error: true # Continue even if the verification fails to help diagnose issues

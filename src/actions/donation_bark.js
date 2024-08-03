@@ -12,11 +12,12 @@ const donationBarkRouter = Express.Router();
 
 // *********************************************************************************
 // BARK Donation Configuration
+// Endpoint to provide donation configuration
 donationBarkRouter.get('/donate-bark-config', (req, res) => {
     const response = {
         icon: "https://ucarecdn.com/74392932-2ff5-4237-a1fa-e0fd15725ecc/bark.svg",
         title: "Donate BARK to Charity Aid Campaign",
-        description: "Enter BARK amount and click Send",
+        description: "Enter the amount of BARK you wish to donate and click Send.",
         label: "Donate",
         links: {
             actions: [
@@ -26,8 +27,8 @@ donationBarkRouter.get('/donate-bark-config', (req, res) => {
                     parameters: [
                         {
                             name: "amount", // Input field name
-                            label: "BARK Amount", // Text input placeholder
-                            required: true
+                            label: "BARK Amount", // Placeholder text
+                            required: true // Field is mandatory
                         }
                     ]
                 }
@@ -40,6 +41,7 @@ donationBarkRouter.get('/donate-bark-config', (req, res) => {
 
 // *********************************************************************************
 // BARK Donation Transaction
+// Endpoint to handle the donation transaction
 donationBarkRouter.post('/donate-bark-build', async (req, res) => {
     const { account: userWallet } = req.body;
     const amount = parseFloat(req.query.amount);
@@ -50,8 +52,12 @@ donationBarkRouter.post('/donate-bark-build', async (req, res) => {
         return res.status(400).json({ message: "User wallet address is required." });
     }
 
+    if (!PublicKey.isOnCurve(userWallet)) {
+        return res.status(400).json({ message: "Invalid user wallet address." });
+    }
+
     if (isNaN(amount) || amount <= 0) {
-        return res.status(400).json({ message: "Invalid BARK amount specified." });
+        return res.status(400).json({ message: "Invalid BARK amount specified. Amount should be a positive number." });
     }
 
     // Convert BARK amount to lamports (1 BARK = 1e9 lamports)
@@ -59,9 +65,9 @@ donationBarkRouter.post('/donate-bark-build', async (req, res) => {
 
     try {
         const fromPublicKey = new PublicKey(userWallet);
-        const charityPublicKey = new PublicKey("BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo"); // Replace with the actual charity account address
+        const charityPublicKey = new PublicKey("BARKkeAwhTuFzcLHX4DjotRsmjXQ1MshGrZbn1CUQqMo"); // Replace with actual charity account address
 
-        // Create transaction instruction
+        // Create transaction instruction for transferring BARK
         const transferInstruction = SystemProgram.transfer({
             fromPubkey: fromPublicKey,
             toPubkey: charityPublicKey,
@@ -73,24 +79,24 @@ donationBarkRouter.post('/donate-bark-build', async (req, res) => {
             rpc, // RPC endpoint
             account: userWallet, // User's wallet address
             instructions: [transferInstruction], // Array of instructions
-            signers: false, // Default to false
-            serialize: true, // Default to true
-            encode: true, // Default to true
-            tables: false, // Default to false
-            tolerance: 2, // Default tolerance level
-            compute: false, // Default to false
-            fees: false, // Default to false; Helius RPC required if true
+            signers: [], // No additional signers needed for this transaction
+            serialize: true, // Serialize the transaction
+            encode: true, // Encode the transaction
+            tables: false, // Do not include tables
+            tolerance: 2, // Tolerance level for transaction
+            compute: false, // Do not include compute budget
+            fees: false, // Do not include fees
             priority // Transaction priority
         };
 
-        // Package the transaction
+        // Package and send the transaction
         const transactionResponse = await barkbuild.tx(transactionPayload);
 
-        // Add success message
-        transactionResponse.message = `You successfully sent ${amount} BARK!`;
+        // Add success message to response
+        transactionResponse.message = `Successfully sent ${amount} BARK! Thank you for your donation.`;
         res.json(transactionResponse);
     } catch (error) {
-        console.error('Error processing BARK donation:', error);
+        console.error('Error processing BARK donation:', error.message);
         res.status(500).json({ message: "An internal server error occurred while processing the donation." });
     }
 });

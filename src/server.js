@@ -1,26 +1,36 @@
 'use strict';
 
 // *********************************************************************************
-// Imports
+// name: bark-action-express
+// author: @bark_protocol
+// repo: github.com/bark-community/bark-action-express
+// *********************************************************************************
+
+// Load environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Import necessary modules and configurations
+import { host, auto, rules } from './config.js';
+import open from 'open';
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import helmet from 'helmet'; // For added security
-import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from './swagger.json'; // Swagger documentation
-import { barkbuild_mint } from './actions/bark_mint.js';
+import helmet from 'helmet';
+import compression from 'compression';
+import { bark_mint } from './actions/bark_mint.js';
 import { donation_sol } from './actions/donation_sol.js';
 import { donation_usdc } from './actions/donation_usdc.js';
 import { donation_bark } from './actions/donation_bark.js';
-import { host, auto, rules } from './config.js';
 
-// *********************************************************************************
-// Initialize server
+// Initialize express app
 const app = express();
 
 // Middleware setup
 app.use(helmet()); // Adds various security headers
-app.use(bodyParser.json());
+app.use(compression()); // Enables gzip compression
+app.use(bodyParser.json()); // Parses JSON bodies
+app.use(bodyParser.urlencoded({ extended: true })); // Parses URL-encoded bodies
 
 // Enable CORS with predefined options
 app.use(cors({
@@ -30,24 +40,11 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Middleware to set additional headers
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Encoding, Accept-Encoding');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.setHeader('Content-Encoding', 'gzip'); // Changed to gzip for better compression
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
-
-// Include and register actions
-app.use("/", barkbuild_mint);
-app.use("/", donation_sol);
-app.use("/", donation_usdc);
-app.use("/", donation_bark);
-
-// Setup Swagger UI for API documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Include and register routes for different actions
+app.use("/bark-mint", bark_mint);
+app.use("/donate-sol", donation_sol);
+app.use("/donate-usdc", donation_usdc);
+app.use("/donate-bark", donation_bark);
 
 // Route handlers
 app.get("/actions.json", (req, res) => {
@@ -66,7 +63,7 @@ app.use((err, req, res, next) => {
 
 // Start server and optionally open URL
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`bark-action-express is running on port ${port}.`);
 
   if (host.includes("localhost") && auto) {
@@ -76,3 +73,17 @@ app.listen(port, () => {
     });
   }
 });
+
+// Graceful shutdown
+function shutdown() {
+  console.log('Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
+  });
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+// *********************************************************************************
